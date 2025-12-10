@@ -247,7 +247,7 @@
                 if (message) payload.message = message;
                 if (refund) payload.refund_amount = refund;
 
-                const response = await fetch('http://127.0.0.1:5000/audit', {
+                const response = await fetch('/api/audit', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

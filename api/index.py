@@ -107,7 +107,10 @@ def check_refund_amount(data):
 # ============================================================================
 # API ENDPOINT: /audit
 # ============================================================================
-@app.route('/audit', methods=['POST'])
+# ============================================================================
+# API ENDPOINT: /audit
+# ============================================================================
+@app.route('/api/audit', methods=['POST'])
 def audit_request():
     """
     Main API endpoint that audits incoming requests for security/policy violations.
@@ -222,7 +225,7 @@ def run_tests():
         # ====================================================================
         print("TEST 1: Safe content (should be APPROVED)")
         print("-" * 70)
-        response = client.post('/audit',
+        response = client.post('/api/audit',
                               json={'user': 'john_doe', 'action': 'view_profile', 'refund': 50},
                               content_type='application/json')
         result = response.get_json()
@@ -237,7 +240,7 @@ def run_tests():
         # ====================================================================
         print("TEST 2: SQL injection attempt (should be BLOCKED)")
         print("-" * 70)
-        response = client.post('/audit',
+        response = client.post('/api/audit',
                               json={'query': 'DROP TABLE users', 'user': 'hacker'},
                               content_type='application/json')
         result = response.get_json()
@@ -253,7 +256,7 @@ def run_tests():
         # ====================================================================
         print("TEST 3: High refund amount (should be BLOCKED)")
         print("-" * 70)
-        response = client.post('/audit',
+        response = client.post('/api/audit',
                               json={'customer': 'alice', 'refund_amount': 750, 'reason': 'defective'},
                               content_type='application/json')
         result = response.get_json()
@@ -269,7 +272,7 @@ def run_tests():
         # ====================================================================
         print("BONUS TEST 4: Negative sentiment (should be BLOCKED)")
         print("-" * 70)
-        response = client.post('/audit',
+        response = client.post('/api/audit',
                               json={'customer_message': 'I am angry about this service', 'ticket_id': 123},
                               content_type='application/json')
         result = response.get_json()
@@ -288,25 +291,6 @@ def run_tests():
 # ============================================================================
 # MAIN EXECUTION
 # ============================================================================
-if __name__ == '__main__':
-    """
-    Entry point when script is run directly.
-    
-    Interview talking points:
-    - The if __name__ == '__main__' pattern allows this file to be
-      both runnable and importable
-    - We run tests first to validate functionality
-    - debug=True enables auto-reload and detailed error pages (dev only!)
-    - In production: use Gunicorn/uWSGI, disable debug, add logging
-    """
-    
-    # Run automated tests first
-    run_tests()
-    
-    print("\nStarting Sentinel API server...")
-    print("Access the API at: http://127.0.0.1:5000/audit")
-    print("Press CTRL+C to quit\n")
-    
-    # Start the Flask development server
-    # WARNING: This is not production-ready! Use proper WSGI server in production
-    app.run(debug=True, host='0.0.0.0', port=5000)
+# For Vercel Serverless Function, we expose the 'app' object
+# Vercel looks for a variable named 'app'
+app = app
