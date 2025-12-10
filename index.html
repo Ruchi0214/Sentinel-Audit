@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel Dashboard</title>
+    <style>
+        :root {
+            --neon-green: #39ff14;
+            --dark-bg: #0d0d0d;
+            --panel-bg: #1a1a1a;
+            --text-color: #e0e0e0;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .container {
+            background-color: var(--panel-bg);
+            padding: 2rem;
+            border: 2px solid var(--neon-green);
+            box-shadow: 0 0 20px var(--neon-green);
+            width: 450px;
+            /* Slightly wider to accommodate new elements */
+            text-align: center;
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        /* Custom Scrollbar for Container */
+        .container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .container::-webkit-scrollbar-track {
+            background: #000;
+        }
+
+        .container::-webkit-scrollbar-thumb {
+            background: var(--neon-green);
+        }
+
+        h1 {
+            color: var(--neon-green);
+            text-shadow: 0 0 10px var(--neon-green);
+            margin-bottom: 2rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--neon-green);
+            font-weight: bold;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            background-color: #000;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            font-family: inherit;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            margin-bottom: 0.5rem;
+        }
+
+        input:focus,
+        textarea:focus {
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+
+        /* Flex container for the simulation area */
+        .sim-container {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #333;
+            padding-bottom: 1rem;
+        }
+
+        .sim-input {
+            flex-grow: 1;
+            text-align: left;
+        }
+
+        .sim-btn {
+            width: auto;
+            min-width: 100px;
+            height: 40px;
+            /* Match approximately input height */
+            margin-bottom: 0.5rem;
+            /* Align with input margin */
+            font-size: 0.9rem;
+        }
+
+        button {
+            background-color: transparent;
+            color: var(--neon-green);
+            border: 2px solid var(--neon-green);
+            padding: 10px 20px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+            font-size: 1.1rem;
+        }
+
+        button:hover {
+            background-color: var(--neon-green);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon-green);
+        }
+
+        #result {
+            margin-top: 2rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            min-height: 2rem;
+            text-shadow: 0 0 5px currentColor;
+        }
+
+        .approved {
+            color: var(--neon-green);
+        }
+
+        .blocked {
+            color: #ff073a;
+            text-shadow: 0 0 10px #ff073a;
+        }
+
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--neon-green);
+            opacity: 0.5;
+            animation: scan 3s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scan {
+            0% {
+                top: 0;
+            }
+
+            100% {
+                top: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="scan-line"></div>
+        <h1>Sentinel Scan</h1>
+
+        <!-- Simulation Area -->
+        <div class="sim-container">
+            <div class="sim-input">
+                <label for="simJson">Paste Simulation JSON</label>
+                <textarea id="simJson" placeholder='{"message": "hello", "refund": 100}'></textarea>
+            </div>
+            <button class="sim-btn" onclick="autoFill()">Auto-Fill</button>
+        </div>
+
+        <div class="input-group">
+            <label for="message">Message</label>
+            <input type="text" id="message" placeholder="Enter content to audit..." autocomplete="off">
+        </div>
+
+        <div class="input-group">
+            <label for="refund">Refund Amount</label>
+            <input type="number" id="refund" placeholder="0.00">
+        </div>
+
+        <button onclick="scanContent()">SCAN</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function autoFill() {
+            const jsonStr = document.getElementById('simJson').value;
+            if (!jsonStr) return;
+
+            try {
+                const data = JSON.parse(jsonStr);
+
+                // Extract Message (look for common fields)
+                // Priority: message, query, body, content, text
+                const msg = data.message || data.query || data.body || data.content || data.text || '';
+                if (msg) document.getElementById('message').value = msg;
+
+                // Extract Refund (look for common fields)
+                // Priority: refund_amount, refund, amount, value
+                const amt = data.refund_amount || data.refund || data.amount || data.value;
+                if (amt !== undefined) document.getElementById('refund').value = amt;
+
+            } catch (e) {
+                alert('Invalid JSON! Please paste valid JSON data.');
+            }
+        }
+
+        async function scanContent() {
+            const message = document.getElementById('message').value;
+            const refund = document.getElementById('refund').value;
+            const resultDiv = document.getElementById('result');
+
+            resultDiv.innerText = 'SCANNING...';
+            resultDiv.className = '';
+
+            try {
+                // Construct payload dynamically based on inputs
+                const payload = {};
+                if (message) payload.message = message;
+                if (refund) payload.refund_amount = refund;
+
+                const response = await fetch('http://127.0.0.1:5000/audit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'APPROVED') {
+                    resultDiv.innerText = 'ACCESS GRANTED';
+                    resultDiv.className = 'approved';
+                } else {
+                    resultDiv.innerText = 'ACCESS DENIED';
+                    resultDiv.className = 'blocked';
+                    // Optional: show reason, but keep it minimal for the "dashboard" look
+                    console.log('Block reason:', data.reason);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.innerText = 'SYSTEM ERROR';
+                resultDiv.className = 'blocked';
+            }
+        }
+    </script>
+</body>
+
+</html>
